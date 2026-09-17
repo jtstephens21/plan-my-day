@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+<title>Plan My Day 📝</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FFF8EC;
+    --paper-deep:#EDE3D0;
+    --ink:#2B2320;
+    --ink-soft:#6B6058;
+    --coral:#FF6B54;
+    --coral-deep:#E2503A;
+    --teal:#189C86;
+    --teal-deep:#0E7A69;
+    --gold:#FFB23E;
+    --lavender:#8C6FE6;
+    --line: rgba(43,35,32,0.14);
+    --card-shadow: 0 6px 18px rgba(43,35,32,0.12);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    min-height:100vh;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(255,107,84,0.10), transparent 40%),
+      radial-gradient(circle at 88% 92%, rgba(24,156,134,0.10), transparent 40%),
+      var(--paper-deep);
+    font-family:'Inter',sans-serif;
+    color:var(--ink);
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+    padding:24px 12px 60px;
+  }
+  h1,h2,h3,.display{ font-family:'Baloo 2', sans-serif; }
+
+  .frame{
+    width:100%;
+    max-width:460px;
+    background:var(--paper);
+    border-radius:26px;
+    box-shadow:0 20px 50px rgba(43,35,32,0.20);
+    overflow:hidden;
+    position:relative;
+    background-image:
+      radial-gradient(circle, rgba(43,35,32,0.05) 1px, transparent 1.2px);
+    background-size:16px 16px;
+  }
+  .tape{
+    height:14px;
+    background:repeating-linear-gradient(90deg,
+      var(--coral) 0 34px,
+      var(--gold) 34px 68px,
+      var(--teal) 68px 102px);
+    opacity:0.9;
+  }
+  .topbar{
+    padding:18px 22px 10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .brand{
+    font-family:'Baloo 2',sans-serif;
+    font-weight:700;
+    font-size:19px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .progress-track{
+    height:6px;
+    margin:0 22px 6px;
+    border-radius:4px;
+    background:rgba(43,35,32,0.08);
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--coral),var(--gold));
+    border-radius:4px;
+    transition:width .35s ease;
+  }
+  .screen{
+    padding:14px 22px 28px;
+    animation:fadeIn .35s ease;
+  }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+
+  .kicker{
+    color:var(--ink-soft);
+    font-size:14px;
+    margin:0 0 4px;
+  }
+  h2.title{
+    font-size:26px;
+    margin:0 0 10px;
+    line-height:1.2;
+  }
+  p.help{
+    color:var(--ink-soft);
+    font-size:14.5px;
+    line-height:1.5;
+    margin:0 0 18px;
+  }
+
+  input[type="text"]{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    font-size:16px;
+    padding:13px 14px;
+    border-radius:12px;
+    border:2px solid var(--line);
+    background:#fff;
+    outline:none;
+    color:var(--ink);
+  }
+  input[type="text"]:focus{ border-color:var(--coral); }
+
+  input[type="time"]{
+    width:100%;
+    font-family:'Inter',sans-serif;
+    font-size:22px;
+    font-weight:600;
+    padding:14px;
+    border-radius:14px;
+    border:2px solid var(--line);
+    background:#fff;
+    color:var(--ink);
+    outline:none;
+  }
+  input[type="time"]:focus{ border-color:var(--coral); }
+  .time-label{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:6px 2px 0;
+  }
+
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    font-family:'Baloo 2',sans-serif;
+    font-weight:600;
+    font-size:16px;
+    padding:13px 20px;
+    border-radius:14px;
+    border:none;
+    cursor:pointer;
+    width:100%;
+    transition:transform .12s ease, opacity .12s ease;
+  }
+  .btn:active{ transform:scale(0.98); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-primary{ background:var(--ink); color:var(--paper); }
+  .btn-primary:not(:disabled):hover{ background:#171310; }
+  .btn-ghost{
+    background:transparent;
+    border:2px solid var(--line);
+    color:var(--ink);
+  }
+  .btn-small{
+    width:auto;
+    padding:8px 14px;
+    font-size:14px;
+    border-radius:10px;
+  }
+  .row-gap{ display:flex; gap:10px; margin-top:14px; }
+
+  .task-add-row{ display:flex; gap:8px; margin-bottom:14px; }
+  .task-add-row .btn{ width:auto; padding:12px 16px; }
+
+  .task-list{ list-style:none; margin:0 0 16px; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .task-chip{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:#fff;
+    border:2px solid var(--line);
+    border-radius:2px 12px 4px 10px;
+    padding:11px 12px;
+    font-size:15px;
+  }
+  .task-chip button{
+    background:none; border:none; color:var(--coral-deep);
+    font-size:18px; cursor:pointer; line-height:1; padding:2px 6px;
+  }
+
+  .duration-hero{
+    background:#fff;
+    border:2px solid var(--line);
+    border-radius:4px 16px 4px 16px;
+    padding:20px 18px;
+    text-align:center;
+    margin-bottom:16px;
+  }
+  .duration-hero .taskname{
+    font-family:'Baloo 2',sans-serif;
+    font-size:22px;
+    margin-bottom:14px;
+  }
+  .counter{
+    font-size:13px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+
+  .bucket-wrap{ display:flex; flex-direction:column; gap:16px; margin-bottom:14px; }
+  .bucket{
+    border-radius:16px;
+    padding:12px;
+  }
+  .bucket.today{ background:rgba(255,107,84,0.10); border:2px dashed rgba(255,107,84,0.45); }
+  .bucket.later{ background:rgba(24,156,134,0.08); border:2px dashed rgba(24,156,134,0.4); }
+  .bucket h3{
+    margin:2px 4px 10px;
+    font-size:16px;
+    display:flex; align-items:center; gap:6px;
+  }
+  .bucket .empty-msg{ font-size:13px; color:var(--ink-soft); padding:6px 4px 2px; }
+
+  .sticky{
+    background:#fff;
+    border-radius:2px 12px 3px 10px;
+    padding:10px 12px;
+    margin-bottom:8px;
+    box-shadow:var(--card-shadow);
+    display:flex;
+    flex-direction:column;
+  }
+  .sticky:nth-child(odd){ transform:rotate(-0.6deg); }
+  .sticky:nth-child(even){ transform:rotate(0.6deg); }
+  .sticky.today-card{ border-left:5px solid var(--coral); }
+  .sticky.later-card{ border-left:5px solid var(--teal); }
+  .sticky-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .sticky .info{ display:flex; flex-direction:column; flex:1; }
+  .sticky .name{ font-weight:600; font-size:14.5px; }
+  .sticky .dur{ font-size:12.5px; color:var(--ink-soft); }
+  .dur-row{ display:flex; align-items:center; gap:5px; }
+  .edit-btn{ border:none; background:none; cursor:pointer; font-size:13px; padding:2px; line-height:1; }
+  .edit-row{ margin-top:8px; display:flex; gap:8px; align-items:center; }
+  .edit-row input[type="time"]{ flex:1; font-size:15px; padding:8px 10px; }
+  .sticky .move-btn{
+    border:none; border-radius:10px; padding:7px 10px;
+    font-family:'Baloo 2',sans-serif; font-size:13px; font-weight:600;
+    cursor:pointer; white-space:nowrap; flex-shrink:0;
+  }
+  .move-btn.to-later{ background:var(--teal); color:#fff; }
+  .move-btn.to-today{ background:var(--coral); color:#fff; }
+
+  .meter{
+    background:#fff;
+    border:2px solid var(--line);
+    border-radius:14px;
+    padding:14px;
+    margin-bottom:14px;
+  }
+  .meter-row{
+    display:flex; justify-content:space-between;
+    font-size:13px; color:var(--ink-soft); margin-bottom:8px;
+  }
+  .meter-bar{
+    height:14px; border-radius:8px; background:rgba(43,35,32,0.08);
+    overflow:hidden; margin-bottom:8px;
+  }
+  .meter-fill{ height:100%; border-radius:8px; transition: width .3s ease, background .3s ease; }
+  .meter-msg{ font-size:14px; font-weight:600; text-align:center; }
+
+  .fixed-card{
+    background:#fff; border:2px solid var(--line);
+    border-radius:2px 12px 4px 10px; padding:12px; margin-bottom:10px;
+  }
+  .fixed-top{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .fixed-top .info{ display:flex; flex-direction:column; }
+  .fixed-top .name{ font-weight:600; font-size:14.5px; }
+  .fixed-top .dur{ font-size:12px; color:var(--ink-soft); }
+  .fixed-time-row{ margin-top:10px; }
+  .switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .switch .slider{ position:absolute; cursor:pointer; inset:0; background:var(--line); border-radius:999px; transition:.2s; }
+  .switch .slider:before{ position:absolute; content:""; height:18px; width:18px; left:3px; bottom:3px; background:#fff; border-radius:50%; transition:.2s; }
+  .switch input:checked + .slider{ background:var(--coral); }
+  .switch input:checked + .slider:before{ transform:translateX(18px); }
+
+  .rank-list{ list-style:none; margin:0 0 16px; padding:0; display:flex; flex-direction:column; gap:8px; }
+  .rank-item{
+    display:flex; align-items:center; gap:10px;
+    background:#fff; border:2px solid var(--line);
+    border-radius:2px 12px 4px 10px; padding:10px 12px;
+  }
+  .rank-num{
+    font-family:'Baloo 2',sans-serif; font-weight:700;
+    background:var(--lavender); color:#fff;
+    width:26px; height:26px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; flex-shrink:0;
+  }
+  .rank-item .info{ flex:1; }
+  .rank-item .name{ font-weight:600; font-size:14.5px; }
+  .rank-item .dur{ font-size:12px; color:var(--ink-soft); }
+  .rank-arrows{ display:flex; flex-direction:column; gap:2px; }
+  .rank-arrows button{
+    border:none; background:var(--paper-deep); border-radius:6px;
+    width:28px; height:22px; font-size:12px; cursor:pointer;
+  }
+  .rank-arrows button:disabled{ opacity:.3; cursor:not-allowed; }
+
+  .now-banner{
+    background:var(--ink); color:var(--paper);
+    border-radius:14px; padding:14px 16px;
+    font-family:'Baloo 2',sans-serif; font-weight:600; font-size:15.5px;
+    text-align:center; margin-bottom:16px;
+  }
+  .schedule-list{ list-style:none; margin:0 0 6px; padding:0; }
+  .sched-line{
+    display:flex; align-items:center; gap:12px;
+    padding:12px 4px; border-bottom:1px dashed var(--line);
+  }
+  .sched-line:last-child{ border-bottom:none; }
+  .sched-line.current{ background:rgba(255,178,62,0.25); border-radius:10px; }
+  .sched-time{
+    font-family:'Baloo 2',sans-serif; font-weight:700;
+    font-size:15px; width:78px; flex-shrink:0; color:var(--ink);
+  }
+  .sched-task{ display:flex; align-items:center; gap:8px; font-size:15px; flex-wrap:wrap; }
+  .sched-line.transition{ opacity:0.65; }
+  .sched-line.transition .sched-time{ color:var(--ink-soft); font-weight:600; }
+  .sched-line.transition .sched-task{ font-size:13.5px; font-style:italic; }
+  .fixed-tag{
+    font-size:11px; background:var(--lavender); color:#fff;
+    padding:2px 6px; border-radius:6px; font-family:'Inter',sans-serif; font-weight:600;
+  }
+
+  .later-footnote{
+    margin-top:18px; padding-top:12px; border-top:1px solid var(--line);
+    font-size:11px; line-height:1.6; color:#A79E93;
+  }
+
+  .emoji-big{ font-size:34px; margin-bottom:10px; display:block; }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="tape"></div>
+    <div class="topbar">
+      <div class="brand">📝 Plan My Day</div>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <div class="screen" id="screen"></div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+
+  var TASK_EMOJIS = ['🎯','📌','✅','🎨','🧹','💪','📚','🎵','🍽️','🛠️','🌱','💻','🧺','🚗','📞','🧘','🎮','✂️','🐶','🛒'];
+  var STEP_ORDER = ['intro','tasks','totalTime','startTime','durations','sort','fixedTimes','rank','schedule'];
+
+  var state = {
+    step: 'intro',
+    tasks: [],          // {id,name,durationMin,bucket,rank,emoji,fixedTimeMin}
+    totalAvailableMin: null,
+    startTimeMin: null,
+    durationIndex: 0,
+    rankOrder: [],       // array of task ids, top = most wanted
+    scheduleLines: [],
+    laterTasks: []
+  };
+  var nextId = 1;
+  var scheduleTimerInterval = null;
+
+  // ---------- helpers ----------
+  function parseHM(val){
+    if(!val) return null;
+    var parts = val.split(':');
+    return (parseInt(parts[0],10)||0)*60 + (parseInt(parts[1],10)||0);
+  }
+  function minToHM(min){
+    var h = Math.floor(min/60), m = min%60;
+    return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0');
+  }
+  function fmtDuration(min){
+    min = Math.max(0, Math.round(min));
+    var h = Math.floor(min/60), m = min%60;
+    if(h===0) return m+'m';
+    if(m===0) return h+'h';
+    return h+'h '+m+'m';
+  }
+  function minutesToClock(min){
+    min = ((min % 1440)+1440)%1440;
+    var h = Math.floor(min/60), m = min%60;
+    var ampm = h>=12 ? 'PM':'AM';
+    var h12 = h%12; if(h12===0) h12=12;
+    return h12+':' + String(m).padStart(2,'0') + ' ' + ampm;
+  }
+  function outsideInZigzag(arr){
+    var result=[], i=0, j=arr.length-1, front=true;
+    while(i<=j){
+      if(front){ result.push(arr[i]); i++; }
+      else { result.push(arr[j]); j--; }
+      front = !front;
+    }
+    return result;
+  }
+  function insideOutZigzag(arr){
+    var n = arr.length;
+    if(n===0) return [];
+    var mid = Math.floor((n-1)/2);
+    var result=[arr[mid]];
+    var left = mid-1, right = mid+1, goRight = true;
+    while(left>=0 || right<n){
+      if(goRight && right<n){ result.push(arr[right]); right++; }
+      else if(!goRight && left>=0){ result.push(arr[left]); left--; }
+      else if(right<n){ result.push(arr[right]); right++; }
+      else if(left>=0){ result.push(arr[left]); left--; }
+      goRight = !goRight;
+    }
+    return result;
+  }
+  function setProgress(){
+    var idx = STEP_ORDER.indexOf(state.step);
+    var pct = (idx/(STEP_ORDER.length-1))*100;
+    document.getElementById('progressFill').style.width = pct+'%';
+  }
+  function el(html){
+    var d = document.createElement('div');
+    d.innerHTML = html.trim();
+    return d.firstChild;
+  }
+  function escapeHtml(s){
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  // ---------- render dispatcher ----------
+  function render(){
+    if(scheduleTimerInterval){ clearInterval(scheduleTimerInterval); scheduleTimerInterval=null; }
+    setProgress();
+    var screen = document.getElementById('screen');
+    screen.innerHTML = '';
+    var fn = RENDERERS[state.step];
+    screen.appendChild(fn());
+  }
+
+  var RENDERERS = {};
+
+  // ---------- 1. Intro ----------
+  RENDERERS.intro = function(){
+    var wrap = el(
+      '<div>' +
+        '<span class="emoji-big">☀️</span>' +
+        '<h2 class="title">Let\'s plan your day</h2>' +
+        '<p class="help">Tell me everything you want to get done, how much time you\'ve got, and when you\'re starting — I\'ll build you a schedule, minute by minute.</p>' +
+        '<button class="btn btn-primary" id="startBtn">Let\'s go 🚀</button>' +
+      '</div>'
+    );
+    wrap.querySelector('#startBtn').onclick = function(){
+      state.step = 'tasks';
+      render();
+    };
+    return wrap;
+  };
+
+  // ---------- 2. Tasks ----------
+  RENDERERS.tasks = function(){
+    var wrap = el(
+      '<div>' +
+        '<p class="kicker">Step 1</p>' +
+        '<h2 class="title">What do you want to do? 🗒️</h2>' +
+        '<p class="help">Add everything on your mind — big or small. Add as many as you like.</p>' +
+        '<div class="task-add-row">' +
+          '<input type="text" id="taskInput" placeholder="e.g. Make pie" />' +
+          '<button class="btn btn-primary" id="addBtn">Add</button>' +
+        '</div>' +
+        '<ul class="task-list" id="taskListEl"></ul>' +
+        '<button class="btn btn-primary" id="nextBtn">Continue →</button>' +
+      '</div>'
+    );
+    var input = wrap.querySelector('#taskInput');
+    var listEl = wrap.querySelector('#taskListEl');
+    var nextBtn = wrap.querySelector('#nextBtn');
+
+    function refreshList(){
+      listEl.innerHTML='';
+      state.tasks.forEach(function(t){
+        var li = el('<li class="task-chip"><span>'+escapeHtml(t.name)+'</span><button aria-label="Remove">✕</button></li>');
+        li.querySelector('button').onclick = function(){
+          state.tasks = state.tasks.filter(function(x){ return x.id!==t.id; });
+          refreshList();
+        };
+        listEl.appendChild(li);
+      });
+      nextBtn.disabled = state.tasks.length===0;
+    }
+    function addTask(){
+      var val = input.value.trim();
+      if(!val) return;
+      state.tasks.push({
+        id: nextId++,
+        name: val,
+        durationMin: null,
+        bucket: null,
+        rank: null,
+        fixedTimeMin: null,
+        emoji: TASK_EMOJIS[(state.tasks.length) % TASK_EMOJIS.length]
+      });
+      input.value='';
+      input.focus();
+      refreshList();
+    }
+    wrap.querySelector('#addBtn').onclick = addTask;
+    input.addEventListener('keydown', function(e){
+      if(e.key==='Enter'){ e.preventDefault(); addTask(); }
+    });
+    nextBtn.onclick = function(){
+      if(state.tasks.length===0) return;
+      state.step='totalTime';
+      render();
+    };
+    refreshList();
+    setTimeout(function(){ input.focus(); }, 50);
+    return wrap;
+  };
+
+  // ---------- 3. Total time available ----------
+  RENDERERS.totalTime = function(){
+    var wrap = el(
+      '<div>' +
+        '<p class="kicker">Step 2</p>' +
+        '<h2 class="title">How much time do you have? ⏱️</h2>' +
+        '<p class="help">Set the total block of time you have available today.</p>' +
+        '<input type="time" id="totalTimeInput" value="01:00" />' +
+        '<div class="time-label">Hours : Minutes</div>' +
+        '<button class="btn btn-primary" id="nextBtn" style="margin-top:20px;">Continue →</button>' +
+      '</div>'
+    );
+    wrap.querySelector('#nextBtn').onclick = function(){
+      var val = wrap.querySelector('#totalTimeInput').value;
+      var min = parseHM(val);
+      if(min===null || min<=0){ min = 60; }
+      state.totalAvailableMin = min;
+      state.step='startTime';
+      render();
+    };
+    return wrap;
+  };
+
+  // ---------- 4. Start time ----------
+  RENDERERS.startTime = function(){
+    var wrap = el(
+      '<div>' +
+        '<p class="kicker">Step 3</p>' +
+        '<h2 class="title">What time are you starting? 🌅</h2>' +
+        '<p class="help">Your schedule will kick off from here.</p>' +
+        '<input type="time" id="startTimeInput" value="09:00" />' +
+        '<div class="time-label">Hour : Minute (AM / PM shown by your device)</div>' +
+        '<button class="btn btn-primary" id="nextBtn" style="margin-top:20px;">Continue →</button>' +
+      '</div>'
+    );
+    wrap.querySelector('#nextBtn').onclick = function(){
+      var val = wrap.querySelector('#startTimeInput').value;
+      var min = parseHM(val);
+      if(min===null) min = 9*60;
+      state.startTimeMin = min;
+      state.durationIndex = 0;
+      state.step='durations';
+      render();
+    };
+    return wrap;
+  };
+
+  // ---------- 5. Durations (one at a time) ----------
+  RENDERERS.durations = function(){
+    var i = state.durationIndex;
+    var task = state.tasks[i];
+    var wrap = el(
+      '<div>' +
+        '<p class="kicker">Step 4</p>' +
+        '<h2 class="title">How long will each task take? ⏳</h2>' +
+        '<div class="duration-hero">' +
+          '<div class="counter">Task '+(i+1)+' of '+state.tasks.length+'</div>' +
+          '<div class="taskname">'+task.emoji+' '+escapeHtml(task.name)+'</div>' +
+          '<input type="time" id="durInput" value="00:30" />' +
+          '<div class="time-label">Hours : Minutes</div>' +
+        '</div>' +
+        '<button class="btn btn-primary" id="nextBtn">'+(i<state.tasks.length-1 ? 'Next task →' : 'Done ✓')+'</button>' +
+      '</div>'
+    );
+    wrap.querySelector('#nextBtn').onclick = function(){
+      var val = wrap.querySelector('#durInput').value;
+      var min = parseHM(val);
+      if(min===null || min<0) min=0;
+      task.durationMin = min;
+      if(i < state.tasks.length-1){
+        state.durationIndex++;
+        render();
+      } else {
+        finishDurations();
+      }
+    };
+    return wrap;
+  };
+
+  function finishDurations(){
+    var totalNeeded = state.tasks.reduce(function(s,t){ return s+t.durationMin; },0);
+    state.tasks.forEach(function(t){ t.bucket='today'; });
+    if(totalNeeded > state.totalAvailableMin){
+      state.step='sort';
+    } else {
+      state.step='fixedTimes';
+    }
+    render();
+  }
+
+  // ---------- 6. Sort into buckets ----------
+  function plannedMinutes(){
+    var todayTasks = state.tasks.filter(function(t){ return t.bucket==='today'; });
+    var sum = todayTasks.reduce(function(s,t){ return s+t.durationMin; },0);
+    var transitions = Math.max(0, todayTasks.length-1)*5;
+    return sum+transitions;
+  }
+
+  RENDERERS.sort = function(){
+    var wrap = el(
+      '<div>' +
+        '<p class="kicker">Step 5</p>' +
+        '<h2 class="title">That\'s a lot! Let\'s sort 🔀</h2>' +
+        '<p class="help">Your tasks add up to more time than you have. Move some cards to <strong>Do Later</strong> until you\'re within your time — or edit a task\'s time with ✏️ if you think you can do it faster.</p>' +
+        '<div class="meter" id="meterEl"></div>' +
+        '<div class="bucket-wrap">' +
+          '<div class="bucket today"><h3>🔥 Do Today</h3><div id="todayCol"></div></div>' +
+          '<div class="bucket later"><h3>🌤️ Do Later</h3><div id="laterCol"></div></div>' +
+        '</div>' +
+        '<button class="btn btn-primary" id="nextBtn">Continue →</button>' +
+      '</div>'
+    );
+
+    function renderStickyCard(t, bucket){
+      var moveLabel = bucket==='today' ? 'Later ▸' : '◂ Today';
+      var moveClass = bucket==='today' ? 'to-later' : 'to-today';
+      var moveBtnHtml = '<button class="move-btn '+moveClass+'">'+moveLabel+'</button>';
+      var card = el(
+        '<div class="sticky '+(bucket==='today'?'today-card':'later-card')+'">' +
+          '<div class="sticky-top">' +
+            (bucket==='later' ? moveBtnHtml : '') +
+            '<div class="info">' +
+              '<span class="name">'+t.emoji+' '+escapeHtml(t.name)+'</span>' +
+              '<span class="dur-row"><span class="dur">'+fmtDuration(t.durationMin)+'</span><button class="edit-btn" aria-label="Edit time">✏️</button></span>' +
+            '</div>' +
+            (bucket==='today' ? moveBtnHtml : '') +
+          '</div>' +
+          '<div class="edit-row" style="display:none;">' +
+            '<input type="time" class="editDurInput" value="'+minToHM(t.durationMin)+'">' +
+            '<button class="btn btn-small btn-primary save-dur">Save</button>' +
+          '</div>' +
+        '</div>'
+      );
+      card.querySelector('.move-btn').onclick = function(){
+        t.bucket = bucket==='today' ? 'later' : 'today';
+        refresh();
+      };
+      var editRow = card.querySelector('.edit-row');
+      card.querySelector('.edit-btn').onclick = function(){
+        editRow.style.display = editRow.style.display==='none' ? 'flex' : 'none';
+      };
+      card.querySelector('.save-dur').onclick = function(){
+        var val = card.querySelector('.editDurInput').value;
+        var min = parseHM(val);
+        if(min!==null && min>=0){ t.durationMin = min; }
+        refresh();
+      };
+      return card;
+    }
+
+    function refresh(){
+      var todayCol = wrap.querySelector('#todayCol');
+      var laterCol = wrap.querySelector('#laterCol');
+      todayCol.innerHTML=''; laterCol.innerHTML='';
+      var todayTasks = state.tasks.filter(function(t){ return t.bucket==='today'; });
+      var laterTasks = state.tasks.filter(function(t){ return t.bucket==='later'; });
+
+      if(todayTasks.length===0){
+        todayCol.appendChild(el('<div class="empty-msg">Nothing here yet.</div>'));
+      }
+      todayTasks.forEach(function(t){ todayCol.appendChild(renderStickyCard(t,'today')); });
+      if(laterTasks.length===0){
+        laterCol.appendChild(el('<div class="empty-msg">Nothing here yet.</div>'));
+      }
+      laterTasks.forEach(function(t){ laterCol.appendChild(renderStickyCard(t,'later')); });
+
+      // meter
+      var planned = plannedMinutes();
+      var avail = state.totalAvailableMin;
+      var pct = Math.min(100, (planned/avail)*100);
+      var over = planned > avail;
+      var color = over ? 'var(--coral-deep)' : 'var(--teal)';
+      var msg;
+      if(todayTasks.length===0){
+        msg = 'Keep at least one task for today 🙂';
+      } else if(over){
+        msg = '⚠️ '+fmtDuration(planned-avail)+' over — move something to Do Later';
+      } else {
+        msg = '🎉 You\'re within your time!';
+      }
+      wrap.querySelector('#meterEl').innerHTML =
+        '<div class="meter-row"><span>Planned: '+fmtDuration(planned)+'</span><span>Available: '+fmtDuration(avail)+'</span></div>' +
+        '<div class="meter-bar"><div class="meter-fill" style="width:'+pct+'%; background:'+color+';"></div></div>' +
+        '<div class="meter-msg" style="color:'+color+';">'+msg+'</div>';
+
+      var nextBtn = wrap.querySelector('#nextBtn');
+      nextBtn.disabled = over || todayTasks.length===0;
+    }
+
+    wrap.querySelector('#nextBtn').onclick = function(){
+      state.step='fixedTimes';
+      render();
+    };
+
+    refresh();
+    return wrap;
+  };
+
+  // ---------- 7. Fixed-time tasks ----------
+  RENDERERS.fixedTimes = function(){
+    var todayTasks = state.tasks.filter(function(t){ return t.bucket==='today'; });
+    var wrap = el(
+      '<div>' +
+        '<p class="kicker">Step 6</p>' +
+        '<h2 class="title">Any set-time tasks? ⏰</h2>' +
+        '<p class="help">If something has to happen at a specific time — a meeting, an appointment — flip it on and set the time. Everything else stays flexible.</p>' +
+        '<div id="fixedList"></div>' +
+        '<button class="btn btn-primary" id="nextBtn" style="margin-top:6px;">Continue →</button>' +
+      '</div>'
+    );
+    var listEl = wrap.querySelector('#fixedList');
+    var cardData = [];
+    todayTasks.forEach(function(t){
+      var card = el(
+        '<div class="fixed-card">' +
+          '<div class="fixed-top">' +
+            '<div class="info"><span class="name">'+t.emoji+' '+escapeHtml(t.name)+'</span><span class="dur">'+fmtDuration(t.durationMin)+'</span></div>' +
+            '<label class="switch"><input type="checkbox" class="fixedToggle"><span class="slider"></span></label>' +
+          '</div>' +
+          '<div class="fixed-time-row" style="display:none;">' +
+            '<input type="time" class="fixedTimeInput" value="'+minToHM(t.fixedTimeMin!=null?t.fixedTimeMin:state.startTimeMin)+'">' +
+            '<div class="time-label">Set the exact start time</div>' +
+          '</div>' +
+        '</div>'
+      );
+      var toggle = card.querySelector('.fixedToggle');
+      var timeRow = card.querySelector('.fixed-time-row');
+      if(t.fixedTimeMin!=null){ toggle.checked = true; timeRow.style.display='block'; }
+      toggle.onchange = function(){
+        timeRow.style.display = toggle.checked ? 'block' : 'none';
+      };
+      listEl.appendChild(card);
+      cardData.push({task:t, toggle:toggle, timeInput: card.querySelector('.fixedTimeInput')});
+    });
+    wrap.querySelector('#nextBtn').onclick = function(){
+      cardData.forEach(function(cd){
+        if(cd.toggle.checked){
+          var min = parseHM(cd.timeInput.value);
+          cd.task.fixedTimeMin = (min==null) ? null : min;
+        } else {
+          cd.task.fixedTimeMin = null;
+        }
+      });
+      proceedFromFixedTimes();
+      render();
+    };
+    return wrap;
+  };
+
+  function proceedFromFixedTimes(){
+    var todayTasks = state.tasks.filter(function(t){ return t.bucket==='today'; });
+    var flexTasks = todayTasks.filter(function(t){ return t.fixedTimeMin==null; });
+    if(flexTasks.length<=1){
+      flexTasks.forEach(function(t,i){ t.rank=i+1; });
+      computeSchedule();
+      state.step='schedule';
+    } else {
+      state.rankOrder = flexTasks.map(function(t){ return t.id; });
+      state.step='rank';
+    }
+  }
+
+  // ---------- 8. Rank by desire ----------
+  RENDERERS.rank = function(){
+    var wrap = el(
+      '<div>' +
+        '<p class="kicker">Step 7</p>' +
+        '<h2 class="title">Rank how you feel about them ❤️</h2>' +
+        '<p class="help">Put what you most feel like doing at the <strong>top</strong>, and what you least feel like doing at the <strong>bottom</strong>.</p>' +
+        '<ul class="rank-list" id="rankListEl"></ul>' +
+        '<button class="btn btn-primary" id="nextBtn">Build my schedule →</button>' +
+      '</div>'
+    );
+    var listEl = wrap.querySelector('#rankListEl');
+
+    function taskById(id){
+      return state.tasks.filter(function(t){ return t.id===id; })[0];
+    }
+    function refresh(){
+      listEl.innerHTML='';
+      state.rankOrder.forEach(function(id, idx){
+        var t = taskById(id);
+        var li = el(
+          '<li class="rank-item">' +
+            '<span class="rank-num">'+(idx+1)+'</span>' +
+            '<div class="info"><div class="name">'+t.emoji+' '+escapeHtml(t.name)+'</div><div class="dur">'+fmtDuration(t.durationMin)+'</div></div>' +
+            '<div class="rank-arrows"><button class="up">▲</button><button class="down">▼</button></div>' +
+          '</li>'
+        );
+        li.querySelector('.up').disabled = idx===0;
+        li.querySelector('.down').disabled = idx===state.rankOrder.length-1;
+        li.querySelector('.up').onclick = function(){
+          if(idx===0) return;
+          var tmp = state.rankOrder[idx-1];
+          state.rankOrder[idx-1]=state.rankOrder[idx];
+          state.rankOrder[idx]=tmp;
+          refresh();
+        };
+        li.querySelector('.down').onclick = function(){
+          if(idx===state.rankOrder.length-1) return;
+          var tmp = state.rankOrder[idx+1];
+          state.rankOrder[idx+1]=state.rankOrder[idx];
+          state.rankOrder[idx]=tmp;
+          refresh();
+        };
+        listEl.appendChild(li);
+      });
+    }
+    wrap.querySelector('#nextBtn').onclick = function(){
+      state.rankOrder.forEach(function(id, idx){
+        taskById(id).rank = idx+1;
+      });
+      computeSchedule();
+      state.step='schedule';
+      render();
+    };
+    refresh();
+    return wrap;
+  };
+
+  // ---------- compute final schedule ----------
+  function computeSchedule(){
+    var todayTasks = state.tasks.filter(function(t){ return t.bucket==='today'; });
+    var fixedTasks = todayTasks.filter(function(t){ return t.fixedTimeMin!=null; })
+                                .sort(function(a,b){ return a.fixedTimeMin-b.fixedTimeMin; });
+    var flexTasks = todayTasks.filter(function(t){ return t.fixedTimeMin==null; });
+    var n = flexTasks.length;
+    var byRank = {};
+    flexTasks.forEach(function(t){ byRank[t.rank]=t; });
+    var ranks = [];
+    for(var r=1;r<=n;r++) ranks.push(r);
+    var groupA = ranks.filter(function(r){ return r%2===0; }).sort(function(a,b){ return b-a; });
+    var groupB = ranks.filter(function(r){ return r%2===1; }).sort(function(a,b){ return a-b; });
+    var orderRanks = outsideInZigzag(groupA).concat(insideOutZigzag(groupB));
+    var remaining = orderRanks.map(function(r){ return byRank[r]; });
+
+    var lines = [];
+    var cur = state.startTimeMin;
+
+    function fillUntil(limit){
+      var placedAny = true;
+      while(placedAny){
+        placedAny = false;
+        for(var i=0;i<remaining.length;i++){
+          var t = remaining[i];
+          var needed = t.durationMin + 5;
+          if(limit===null || cur+needed<=limit){
+            lines.push({timeMin:cur, durationMin:t.durationMin, label:t.name, kind:'task', emoji:t.emoji, fixed:false});
+            cur += t.durationMin;
+            lines.push({timeMin:cur, durationMin:5, label:'Transition break', kind:'transition', emoji:'☕'});
+            cur += 5;
+            remaining.splice(i,1);
+            placedAny = true;
+            break;
+          }
+        }
+      }
+    }
+
+    fixedTasks.forEach(function(ft){
+      fillUntil(ft.fixedTimeMin);
+      cur = Math.max(cur, ft.fixedTimeMin);
+      lines.push({timeMin:cur, durationMin:ft.durationMin, label:ft.name, kind:'task', emoji:ft.emoji, fixed:true});
+      cur += ft.durationMin;
+      lines.push({timeMin:cur, durationMin:5, label:'Transition break', kind:'transition', emoji:'☕'});
+      cur += 5;
+    });
+    fillUntil(null);
+
+    if(lines.length && lines[lines.length-1].kind==='transition'){
+      lines.pop();
+    }
+
+    state.scheduleLines = lines;
+    state.laterTasks = state.tasks.filter(function(t){ return t.bucket==='later'; });
+  }
+
+  // ---------- 9. Final schedule ----------
+  RENDERERS.schedule = function(){
+    if(scheduleTimerInterval){ clearInterval(scheduleTimerInterval); scheduleTimerInterval=null; }
+    var wrap = el(
+      '<div>' +
+        '<span class="emoji-big">🎉</span>' +
+        '<h2 class="title">Your schedule</h2>' +
+        '<div class="now-banner" id="nowBanner"></div>' +
+        '<ul class="schedule-list" id="schedList"></ul>' +
+        '<div id="laterFoot"></div>' +
+        '<button class="btn btn-ghost" id="restartBtn" style="margin-top:18px;">↺ Start over</button>' +
+      '</div>'
+    );
+    var listEl = wrap.querySelector('#schedList');
+    var lineRefs = [];
+    state.scheduleLines.forEach(function(line, idx){
+      var li = el(
+        '<li class="sched-line '+(line.kind==='transition'?'transition':'')+'">' +
+          '<span class="sched-time">'+minutesToClock(line.timeMin)+'</span>' +
+          '<span class="sched-task">'+line.emoji+' '+escapeHtml(line.label)+(line.fixed?' <span class="fixed-tag">📌 fixed</span>':'')+'</span>' +
+        '</li>'
+      );
+      listEl.appendChild(li);
+      lineRefs.push({el: li, line: line, endMin: line.timeMin+line.durationMin});
+    });
+    if(state.laterTasks.length>0){
+      var names = state.laterTasks.map(function(t){ return t.name+' ('+fmtDuration(t.durationMin)+')'; }).join(', ');
+      wrap.querySelector('#laterFoot').innerHTML =
+        '<div class="later-footnote">Also on your list for later: '+escapeHtml(names)+'</div>';
+    }
+    wrap.querySelector('#restartBtn').onclick = function(){
+      if(scheduleTimerInterval){ clearInterval(scheduleTimerInterval); scheduleTimerInterval=null; }
+      state = { step:'intro', tasks:[], totalAvailableMin:null, startTimeMin:null, durationIndex:0, rankOrder:[], scheduleLines:[], laterTasks:[] };
+      nextId = 1;
+      render();
+    };
+
+    var bannerEl = wrap.querySelector('#nowBanner');
+    function updateBanner(){
+      var now = new Date();
+      var nowMin = now.getHours()*60 + now.getMinutes();
+      if(nowMin < state.startTimeMin){ nowMin += 1440; }
+      var html = '';
+      var currentIdx = -1;
+      if(lineRefs.length===0){
+        html = 'Nothing scheduled.';
+      } else if(nowMin < lineRefs[0].line.timeMin){
+        html = '🕐 First up in '+fmtDuration(lineRefs[0].line.timeMin-nowMin);
+      } else {
+        var last = lineRefs[lineRefs.length-1];
+        if(nowMin >= last.endMin){
+          html = '🎉 All done for today!';
+        } else {
+          for(var i=0;i<lineRefs.length;i++){
+            var ref = lineRefs[i];
+            if(nowMin>=ref.line.timeMin && nowMin<ref.endMin){
+              currentIdx = i;
+              var left = ref.endMin-nowMin;
+              if(ref.line.kind==='transition'){
+                html = '☕ Transition break — '+fmtDuration(left)+' left';
+              } else {
+                html = '▶️ Right now: '+ref.line.emoji+' '+escapeHtml(ref.line.label)+' — '+fmtDuration(left)+' left';
+              }
+              break;
+            }
+          }
+        }
+      }
+      bannerEl.innerHTML = html;
+      lineRefs.forEach(function(ref, i){
+        if(i===currentIdx) ref.el.classList.add('current');
+        else ref.el.classList.remove('current');
+      });
+    }
+    updateBanner();
+    scheduleTimerInterval = setInterval(updateBanner, 15000);
+    return wrap;
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
