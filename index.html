@@ -662,7 +662,9 @@
   };
 
   function finishDurations(){
-    var totalNeeded = state.tasks.reduce(function(s,t){ return s+t.durationMin; },0);
+    var sum = state.tasks.reduce(function(s,t){ return s+t.durationMin; },0);
+    var transitions = Math.max(0, state.tasks.length-1)*5;
+    var totalNeeded = sum + transitions;
     state.tasks.forEach(function(t){ t.bucket='today'; });
     if(totalNeeded > state.totalAvailableMin){
       state.step='sort';
