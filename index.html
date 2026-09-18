@@ -63,7 +63,16 @@
     padding:18px 22px 10px;
     display:flex;
     align-items:center;
-    justify-content:space-between;
+    gap:8px;
+  }
+  .back-btn{
+    border:none;
+    background:none;
+    font-size:21px;
+    line-height:1;
+    cursor:pointer;
+    color:var(--ink);
+    padding:2px 4px;
   }
   .brand{
     font-family:'Baloo 2',sans-serif;
@@ -140,6 +149,17 @@
     color:var(--ink-soft);
     margin:6px 2px 0;
   }
+
+  .dur-picker{ display:flex; gap:12px; align-items:center; justify-content:center; }
+  .dur-field{ display:flex; align-items:center; gap:6px; background:#fff; border:2px solid var(--line); border-radius:14px; padding:10px 14px; }
+  .dur-field input[type="number"]{
+    width:52px; border:none; outline:none; font-family:'Inter',sans-serif;
+    font-size:22px; font-weight:600; text-align:center; color:var(--ink);
+  }
+  .dur-suffix{ font-size:13px; color:var(--ink-soft); }
+  .dur-picker.dur-picker-sm{ gap:8px; justify-content:flex-start; }
+  .dur-picker.dur-picker-sm .dur-field{ padding:6px 8px; border-radius:10px; }
+  .dur-picker.dur-picker-sm input[type="number"]{ width:34px; font-size:16px; }
 
   .btn{
     display:inline-flex;
@@ -244,8 +264,7 @@
   .sticky .dur{ font-size:12.5px; color:var(--ink-soft); }
   .dur-row{ display:flex; align-items:center; gap:5px; }
   .edit-btn{ border:none; background:none; cursor:pointer; font-size:13px; padding:2px; line-height:1; }
-  .edit-row{ margin-top:8px; display:flex; gap:8px; align-items:center; }
-  .edit-row input[type="time"]{ flex:1; font-size:15px; padding:8px 10px; }
+  .edit-row{ margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .sticky .move-btn{
     border:none; border-radius:10px; padding:7px 10px;
     font-family:'Baloo 2',sans-serif; font-size:13px; font-weight:600;
@@ -281,6 +300,7 @@
   .fixed-top .name{ font-weight:600; font-size:14.5px; }
   .fixed-top .dur{ font-size:12px; color:var(--ink-soft); }
   .fixed-time-row{ margin-top:10px; }
+  .fixed-warning{ color:var(--coral-deep); font-size:12.5px; margin-top:6px; font-weight:600; }
   .switch{ position:relative; display:inline-block; width:42px; height:24px; flex-shrink:0; }
   .switch input{ opacity:0; width:0; height:0; }
   .switch .slider{ position:absolute; cursor:pointer; inset:0; background:var(--line); border-radius:999px; transition:.2s; }
@@ -317,6 +337,10 @@
     font-family:'Baloo 2',sans-serif; font-weight:600; font-size:15.5px;
     text-align:center; margin-bottom:16px;
   }
+  .bumped-notice{
+    background:rgba(255,107,84,0.12); border:2px solid rgba(255,107,84,0.4);
+    border-radius:12px; padding:10px 12px; font-size:13px; margin-bottom:14px;
+  }
   .schedule-list{ list-style:none; margin:0 0 6px; padding:0; }
   .sched-line{
     display:flex; align-items:center; gap:12px;
@@ -349,6 +373,7 @@
   <div class="frame">
     <div class="tape"></div>
     <div class="topbar">
+      <button id="backBtn" class="back-btn" aria-label="Go back" style="display:none;">←</button>
       <div class="brand">📝 Plan My Day</div>
     </div>
     <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
@@ -370,12 +395,23 @@
     durationIndex: 0,
     rankOrder: [],       // array of task ids, top = most wanted
     scheduleLines: [],
-    laterTasks: []
+    laterTasks: [],
+    bumpedTasks: []
   };
   var nextId = 1;
   var scheduleTimerInterval = null;
+  var history = [];
 
   // ---------- helpers ----------
+  function pushHistory(){
+    history.push(JSON.parse(JSON.stringify(state)));
+  }
+  function goBack(){
+    if(history.length===0) return;
+    if(scheduleTimerInterval){ clearInterval(scheduleTimerInterval); scheduleTimerInterval=null; }
+    state = history.pop();
+    render();
+  }
   function parseHM(val){
     if(!val) return null;
     var parts = val.split(':');
@@ -398,6 +434,20 @@
     var ampm = h>=12 ? 'PM':'AM';
     var h12 = h%12; if(h12===0) h12=12;
     return h12+':' + String(m).padStart(2,'0') + ' ' + ampm;
+  }
+  function durationPickerHtml(min, extraClass){
+    var h = Math.floor(min/60), m = min%60;
+    return '<div class="dur-picker '+(extraClass||'')+'">' +
+      '<div class="dur-field"><input type="number" inputmode="numeric" class="durHours" min="0" max="23" value="'+h+'"><span class="dur-suffix">hr</span></div>' +
+      '<div class="dur-field"><input type="number" inputmode="numeric" class="durMinutes" min="0" max="59" value="'+m+'"><span class="dur-suffix">min</span></div>' +
+    '</div>';
+  }
+  function readDurationPicker(container){
+    var h = parseInt(container.querySelector('.durHours').value,10); if(isNaN(h)||h<0) h=0;
+    var m = parseInt(container.querySelector('.durMinutes').value,10); if(isNaN(m)||m<0) m=0;
+    if(h>23) h=23;
+    if(m>59) m=59;
+    return h*60+m;
   }
   function outsideInZigzag(arr){
     var result=[], i=0, j=arr.length-1, front=true;
@@ -447,6 +497,9 @@
     screen.innerHTML = '';
     var fn = RENDERERS[state.step];
     screen.appendChild(fn());
+    var backBtn = document.getElementById('backBtn');
+    backBtn.style.display = history.length>0 ? 'inline-flex' : 'none';
+    backBtn.onclick = goBack;
   }
 
   var RENDERERS = {};
@@ -462,6 +515,7 @@
       '</div>'
     );
     wrap.querySelector('#startBtn').onclick = function(){
+      pushHistory();
       state.step = 'tasks';
       render();
     };
@@ -521,6 +575,7 @@
     });
     nextBtn.onclick = function(){
       if(state.tasks.length===0) return;
+      pushHistory();
       state.step='totalTime';
       render();
     };
@@ -536,15 +591,14 @@
         '<p class="kicker">Step 2</p>' +
         '<h2 class="title">How much time do you have? ⏱️</h2>' +
         '<p class="help">Set the total block of time you have available today.</p>' +
-        '<input type="time" id="totalTimeInput" value="01:00" />' +
-        '<div class="time-label">Hours : Minutes</div>' +
+        durationPickerHtml(state.totalAvailableMin!=null?state.totalAvailableMin:60) +
         '<button class="btn btn-primary" id="nextBtn" style="margin-top:20px;">Continue →</button>' +
       '</div>'
     );
     wrap.querySelector('#nextBtn').onclick = function(){
-      var val = wrap.querySelector('#totalTimeInput').value;
-      var min = parseHM(val);
-      if(min===null || min<=0){ min = 60; }
+      var min = readDurationPicker(wrap);
+      if(min<=0){ min = 60; }
+      pushHistory();
       state.totalAvailableMin = min;
       state.step='startTime';
       render();
@@ -559,7 +613,7 @@
         '<p class="kicker">Step 3</p>' +
         '<h2 class="title">What time are you starting? 🌅</h2>' +
         '<p class="help">Your schedule will kick off from here.</p>' +
-        '<input type="time" id="startTimeInput" value="09:00" />' +
+        '<input type="time" id="startTimeInput" value="'+(state.startTimeMin!=null?minToHM(state.startTimeMin):'09:00')+'" />' +
         '<div class="time-label">Hour : Minute (AM / PM shown by your device)</div>' +
         '<button class="btn btn-primary" id="nextBtn" style="margin-top:20px;">Continue →</button>' +
       '</div>'
@@ -568,6 +622,7 @@
       var val = wrap.querySelector('#startTimeInput').value;
       var min = parseHM(val);
       if(min===null) min = 9*60;
+      pushHistory();
       state.startTimeMin = min;
       state.durationIndex = 0;
       state.step='durations';
@@ -587,16 +642,14 @@
         '<div class="duration-hero">' +
           '<div class="counter">Task '+(i+1)+' of '+state.tasks.length+'</div>' +
           '<div class="taskname">'+task.emoji+' '+escapeHtml(task.name)+'</div>' +
-          '<input type="time" id="durInput" value="00:30" />' +
-          '<div class="time-label">Hours : Minutes</div>' +
+          durationPickerHtml(task.durationMin!=null?task.durationMin:30) +
         '</div>' +
         '<button class="btn btn-primary" id="nextBtn">'+(i<state.tasks.length-1 ? 'Next task →' : 'Done ✓')+'</button>' +
       '</div>'
     );
     wrap.querySelector('#nextBtn').onclick = function(){
-      var val = wrap.querySelector('#durInput').value;
-      var min = parseHM(val);
-      if(min===null || min<0) min=0;
+      var min = readDurationPicker(wrap);
+      pushHistory();
       task.durationMin = min;
       if(i < state.tasks.length-1){
         state.durationIndex++;
@@ -657,7 +710,7 @@
             (bucket==='today' ? moveBtnHtml : '') +
           '</div>' +
           '<div class="edit-row" style="display:none;">' +
-            '<input type="time" class="editDurInput" value="'+minToHM(t.durationMin)+'">' +
+            durationPickerHtml(t.durationMin, 'dur-picker-sm') +
             '<button class="btn btn-small btn-primary save-dur">Save</button>' +
           '</div>' +
         '</div>'
@@ -671,9 +724,8 @@
         editRow.style.display = editRow.style.display==='none' ? 'flex' : 'none';
       };
       card.querySelector('.save-dur').onclick = function(){
-        var val = card.querySelector('.editDurInput').value;
-        var min = parseHM(val);
-        if(min!==null && min>=0){ t.durationMin = min; }
+        var min = readDurationPicker(card);
+        t.durationMin = min;
         refresh();
       };
       return card;
@@ -695,7 +747,6 @@
       }
       laterTasks.forEach(function(t){ laterCol.appendChild(renderStickyCard(t,'later')); });
 
-      // meter
       var planned = plannedMinutes();
       var avail = state.totalAvailableMin;
       var pct = Math.min(100, (planned/avail)*100);
@@ -719,6 +770,7 @@
     }
 
     wrap.querySelector('#nextBtn').onclick = function(){
+      pushHistory();
       state.step='fixedTimes';
       render();
     };
@@ -730,11 +782,12 @@
   // ---------- 7. Fixed-time tasks ----------
   RENDERERS.fixedTimes = function(){
     var todayTasks = state.tasks.filter(function(t){ return t.bucket==='today'; });
+    var endTimeMin = state.startTimeMin + state.totalAvailableMin;
     var wrap = el(
       '<div>' +
         '<p class="kicker">Step 6</p>' +
         '<h2 class="title">Any set-time tasks? ⏰</h2>' +
-        '<p class="help">If something has to happen at a specific time — a meeting, an appointment — flip it on and set the time. Everything else stays flexible.</p>' +
+        '<p class="help">If something has to happen at a specific time — a meeting, an appointment — flip it on and set the time. Your day runs from <strong>'+minutesToClock(state.startTimeMin)+'</strong> to <strong>'+minutesToClock(endTimeMin)+'</strong>.</p>' +
         '<div id="fixedList"></div>' +
         '<button class="btn btn-primary" id="nextBtn" style="margin-top:6px;">Continue →</button>' +
       '</div>'
@@ -751,19 +804,34 @@
           '<div class="fixed-time-row" style="display:none;">' +
             '<input type="time" class="fixedTimeInput" value="'+minToHM(t.fixedTimeMin!=null?t.fixedTimeMin:state.startTimeMin)+'">' +
             '<div class="time-label">Set the exact start time</div>' +
+            '<div class="fixed-warning" style="display:none;"></div>' +
           '</div>' +
         '</div>'
       );
       var toggle = card.querySelector('.fixedToggle');
       var timeRow = card.querySelector('.fixed-time-row');
-      if(t.fixedTimeMin!=null){ toggle.checked = true; timeRow.style.display='block'; }
+      var timeInput = card.querySelector('.fixedTimeInput');
+      var warnEl = card.querySelector('.fixed-warning');
+      function checkWarn(){
+        var min = parseHM(timeInput.value);
+        if(min!=null && (min<state.startTimeMin || min>endTimeMin)){
+          warnEl.textContent = '⚠️ That\'s outside your '+minutesToClock(state.startTimeMin)+'–'+minutesToClock(endTimeMin)+' window.';
+          warnEl.style.display='block';
+        } else {
+          warnEl.style.display='none';
+        }
+      }
+      if(t.fixedTimeMin!=null){ toggle.checked = true; timeRow.style.display='block'; checkWarn(); }
       toggle.onchange = function(){
         timeRow.style.display = toggle.checked ? 'block' : 'none';
+        if(toggle.checked) checkWarn();
       };
+      timeInput.onchange = checkWarn;
       listEl.appendChild(card);
-      cardData.push({task:t, toggle:toggle, timeInput: card.querySelector('.fixedTimeInput')});
+      cardData.push({task:t, toggle:toggle, timeInput:timeInput});
     });
     wrap.querySelector('#nextBtn').onclick = function(){
+      pushHistory();
       cardData.forEach(function(cd){
         if(cd.toggle.checked){
           var min = parseHM(cd.timeInput.value);
@@ -838,6 +906,7 @@
       });
     }
     wrap.querySelector('#nextBtn').onclick = function(){
+      pushHistory();
       state.rankOrder.forEach(function(id, idx){
         taskById(id).rank = idx+1;
       });
@@ -865,10 +934,11 @@
     var orderRanks = outsideInZigzag(groupA).concat(insideOutZigzag(groupB));
     var remaining = orderRanks.map(function(r){ return byRank[r]; });
 
+    var endTimeMin = state.startTimeMin + state.totalAvailableMin;
     var lines = [];
     var cur = state.startTimeMin;
 
-    function fillUntil(limit){
+    function fillUntil(limit, absorbLeftover){
       var placedAny = true;
       while(placedAny){
         placedAny = false;
@@ -886,24 +956,36 @@
           }
         }
       }
+      if(absorbLeftover && limit!==null && cur<limit){
+        var gap = limit-cur;
+        var last = lines[lines.length-1];
+        if(last && last.kind==='transition'){
+          last.durationMin += gap;
+        } else {
+          lines.push({timeMin:cur, durationMin:gap, label:'Free time', kind:'transition', emoji:'⏳'});
+        }
+        cur = limit;
+      }
     }
 
     fixedTasks.forEach(function(ft){
-      fillUntil(ft.fixedTimeMin);
+      fillUntil(ft.fixedTimeMin, true);
       cur = Math.max(cur, ft.fixedTimeMin);
       lines.push({timeMin:cur, durationMin:ft.durationMin, label:ft.name, kind:'task', emoji:ft.emoji, fixed:true});
       cur += ft.durationMin;
       lines.push({timeMin:cur, durationMin:5, label:'Transition break', kind:'transition', emoji:'☕'});
       cur += 5;
     });
-    fillUntil(null);
+    fillUntil(endTimeMin, false);
 
     if(lines.length && lines[lines.length-1].kind==='transition'){
       lines.pop();
     }
 
+    var bumped = remaining.slice();
     state.scheduleLines = lines;
-    state.laterTasks = state.tasks.filter(function(t){ return t.bucket==='later'; });
+    state.bumpedTasks = bumped;
+    state.laterTasks = state.tasks.filter(function(t){ return t.bucket==='later'; }).concat(bumped);
   }
 
   // ---------- 9. Final schedule ----------
@@ -914,11 +996,20 @@
         '<span class="emoji-big">🎉</span>' +
         '<h2 class="title">Your schedule</h2>' +
         '<div class="now-banner" id="nowBanner"></div>' +
+        '<div class="bumped-notice" id="bumpedNotice" style="display:none;"></div>' +
         '<ul class="schedule-list" id="schedList"></ul>' +
         '<div id="laterFoot"></div>' +
         '<button class="btn btn-ghost" id="restartBtn" style="margin-top:18px;">↺ Start over</button>' +
       '</div>'
     );
+
+    if(state.bumpedTasks && state.bumpedTasks.length>0){
+      var bumpedNames = state.bumpedTasks.map(function(t){ return t.name; }).join(', ');
+      var notice = wrap.querySelector('#bumpedNotice');
+      notice.style.display='block';
+      notice.innerHTML = '⚠️ Couldn\'t fit within your time window: '+escapeHtml(bumpedNames)+'. Moved to your later list.';
+    }
+
     var listEl = wrap.querySelector('#schedList');
     var lineRefs = [];
     state.scheduleLines.forEach(function(line, idx){
@@ -938,8 +1029,9 @@
     }
     wrap.querySelector('#restartBtn').onclick = function(){
       if(scheduleTimerInterval){ clearInterval(scheduleTimerInterval); scheduleTimerInterval=null; }
-      state = { step:'intro', tasks:[], totalAvailableMin:null, startTimeMin:null, durationIndex:0, rankOrder:[], scheduleLines:[], laterTasks:[] };
+      state = { step:'intro', tasks:[], totalAvailableMin:null, startTimeMin:null, durationIndex:0, rankOrder:[], scheduleLines:[], laterTasks:[], bumpedTasks:[] };
       nextId = 1;
+      history = [];
       render();
     };
 
@@ -947,7 +1039,6 @@
     function updateBanner(){
       var now = new Date();
       var nowMin = now.getHours()*60 + now.getMinutes();
-      if(nowMin < state.startTimeMin){ nowMin += 1440; }
       var html = '';
       var currentIdx = -1;
       if(lineRefs.length===0){
