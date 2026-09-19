@@ -934,57 +934,83 @@
     var groupA = ranks.filter(function(r){ return r%2===0; }).sort(function(a,b){ return b-a; });
     var groupB = ranks.filter(function(r){ return r%2===1; }).sort(function(a,b){ return a-b; });
     var orderRanks = outsideInZigzag(groupA).concat(insideOutZigzag(groupB));
-    var remaining = orderRanks.map(function(r){ return byRank[r]; });
+    var zigzagList = orderRanks.map(function(r){ return byRank[r]; });
 
     var endTimeMin = state.startTimeMin + state.totalAvailableMin;
+
+    // Build the open windows: one before each fixed task, plus one trailing window.
+    var windows = [];
+    var wCursor = state.startTimeMin;
+    fixedTasks.forEach(function(ft){
+      windows.push({ start: wCursor, end: ft.fixedTimeMin });
+      wCursor = ft.fixedTimeMin + ft.durationMin;
+    });
+    windows.push({ start: wCursor, end: endTimeMin });
+    windows.forEach(function(w){
+      w.cap = Math.max(0, w.end - w.start);
+      w.used = 0;
+      w.items = [];
+    });
+
+    // Phase 1 — fit as much as possible: place biggest tasks first into the
+    // earliest window that still has room, so a small task never hogs a
+    // window a bigger task actually needed. Priority is fitting, not order.
+    var bySize = zigzagList.slice().sort(function(a,b){ return b.durationMin - a.durationMin; });
+    bySize.forEach(function(t){
+      var needed = t.durationMin + 5;
+      for(var w=0; w<windows.length; w++){
+        if(windows[w].used + needed <= windows[w].cap){
+          windows[w].items.push(t);
+          windows[w].used += needed;
+          return;
+        }
+      }
+    });
+
+    // Phase 2 — within each window, restore the "how you feel about it" order.
+    windows.forEach(function(w){
+      w.items.sort(function(a,b){ return zigzagList.indexOf(a) - zigzagList.indexOf(b); });
+    });
+
+    // Phase 3 — lay out the actual timeline.
     var lines = [];
     var cur = state.startTimeMin;
-
-    function fillUntil(limit, absorbLeftover){
-      var placedAny = true;
-      while(placedAny){
-        placedAny = false;
-        for(var i=0;i<remaining.length;i++){
-          var t = remaining[i];
-          var needed = t.durationMin + 5;
-          if(limit===null || cur+needed<=limit){
-            lines.push({timeMin:cur, durationMin:t.durationMin, label:t.name, kind:'task', emoji:t.emoji, fixed:false});
-            cur += t.durationMin;
-            lines.push({timeMin:cur, durationMin:5, label:'Transition break', kind:'transition', emoji:'☕'});
-            cur += 5;
-            remaining.splice(i,1);
-            placedAny = true;
-            break;
+    windows.forEach(function(w, wIdx){
+      w.items.forEach(function(t){
+        lines.push({timeMin:cur, durationMin:t.durationMin, label:t.name, kind:'task', emoji:t.emoji, fixed:false});
+        cur += t.durationMin;
+        lines.push({timeMin:cur, durationMin:5, label:'Transition break', kind:'transition', emoji:'☕'});
+        cur += 5;
+      });
+      var isLastWindow = (wIdx === windows.length-1);
+      if(!isLastWindow){
+        if(cur < w.end){
+          var gap = w.end - cur;
+          var last = lines[lines.length-1];
+          if(last && last.kind==='transition'){
+            last.durationMin += gap;
+          } else {
+            lines.push({timeMin:cur, durationMin:gap, label:'Free time', kind:'transition', emoji:'⏳'});
           }
+          cur = w.end;
         }
+        var ft = fixedTasks[wIdx];
+        cur = Math.max(cur, ft.fixedTimeMin);
+        lines.push({timeMin:cur, durationMin:ft.durationMin, label:ft.name, kind:'task', emoji:ft.emoji, fixed:true});
+        cur += ft.durationMin;
+        lines.push({timeMin:cur, durationMin:5, label:'Transition break', kind:'transition', emoji:'☕'});
+        cur += 5;
       }
-      if(absorbLeftover && limit!==null && cur<limit){
-        var gap = limit-cur;
-        var last = lines[lines.length-1];
-        if(last && last.kind==='transition'){
-          last.durationMin += gap;
-        } else {
-          lines.push({timeMin:cur, durationMin:gap, label:'Free time', kind:'transition', emoji:'⏳'});
-        }
-        cur = limit;
-      }
-    }
-
-    fixedTasks.forEach(function(ft){
-      fillUntil(ft.fixedTimeMin, true);
-      cur = Math.max(cur, ft.fixedTimeMin);
-      lines.push({timeMin:cur, durationMin:ft.durationMin, label:ft.name, kind:'task', emoji:ft.emoji, fixed:true});
-      cur += ft.durationMin;
-      lines.push({timeMin:cur, durationMin:5, label:'Transition break', kind:'transition', emoji:'☕'});
-      cur += 5;
     });
-    fillUntil(endTimeMin, false);
 
     if(lines.length && lines[lines.length-1].kind==='transition'){
       lines.pop();
     }
 
-    var bumped = remaining.slice();
+    var placedIds = {};
+    windows.forEach(function(w){ w.items.forEach(function(t){ placedIds[t.id]=true; }); });
+    var bumped = zigzagList.filter(function(t){ return !placedIds[t.id]; });
+
     state.scheduleLines = lines;
     state.bumpedTasks = bumped;
     state.laterTasks = state.tasks.filter(function(t){ return t.bucket==='later'; }).concat(bumped);
